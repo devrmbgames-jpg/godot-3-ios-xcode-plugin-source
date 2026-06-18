@@ -178,7 +178,11 @@ void FirebaseAnalytics::_bind_methods() {
 
 FirebaseAnalytics::FirebaseAnalytics() {
     NSLog(@"Initialize FirebaseAnalytics");
-    [FIRApp configure];
+    if ([FIRApp defaultApp] == nil) {
+        [FIRApp configure];
+    } else {
+        NSLog(@"Firebase already configured, skip FIRApp configure");
+    }
 }
 
 FirebaseAnalytics::~FirebaseAnalytics() {

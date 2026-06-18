@@ -84,7 +84,8 @@ void APNPlugin::register_push_notifications(int options) {
 }
 
 void APNPlugin::update_device_token(String token) {
-	emit_signal("device_address_changed", token);
+    
+	call_deferred("emit_signal", "device_address_changed", token);
 }
 
 void APNPlugin::set_badge_number(int value) {

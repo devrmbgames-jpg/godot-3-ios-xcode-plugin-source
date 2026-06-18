@@ -29,9 +29,10 @@ class GodotAppHud : public Object {
     GDCLASS(GodotAppHud, Object)
 
     static void _bind_methods();
-    
+    static GodotAppHud* _instance;
 public:
-    static bool is_ok;
+    static GodotAppHud* get_instance();
+    
     GodotAppHud();
     ~GodotAppHud();
     

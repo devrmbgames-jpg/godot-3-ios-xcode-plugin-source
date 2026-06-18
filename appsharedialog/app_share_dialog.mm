@@ -54,6 +54,7 @@ AppShareDialog::AppShareDialog() {
 
 
 AppShareDialog::~AppShareDialog() {
+    instance = NULL;
 }
 
 void AppShareDialog::share_text(String title, String subject, String text) {
@@ -161,7 +162,8 @@ void AppShareDialog::share_image(String path, String title, String subject, Stri
                     NSLog(@"AppShareDialog: success");
                     dispatch_async(dispatch_get_main_queue(), ^{
                         NSLog(@"AppShareDialog: share image");
-                        _share_image(path, title, subject, text);
+                        if (AppShareDialog::get_singleton())
+                            AppShareDialog::get_singleton()->_share_image(path, title, subject, text);
                     });
                 }
                 else {

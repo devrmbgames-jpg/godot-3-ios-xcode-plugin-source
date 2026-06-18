@@ -32,14 +32,16 @@ class GodotStoreKit2 : public Object {
     static const String signal_purchase_deferred;
     static const String signal_store_sync;
     static const String signal_update_region;
+    static GodotStoreKit2* _instance;
     
     String _current_region;
     String _purchase_deferred;
-    bool _inited = false;
     
 public:
     GodotStoreKit2();
     ~GodotStoreKit2();
+    
+    static GodotStoreKit2* get_instance();
     
     void init_store();
     void request_products(PoolStringArray skus);

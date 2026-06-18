@@ -13,6 +13,7 @@
 
 
 
+
 const String GodotStoreKit2::signal_update_products_list = "update_products_list";
 const String GodotStoreKit2::signal_update_transaction_list = "update_transaction_list";
 const String GodotStoreKit2::signal_purchased = "purchased";
@@ -20,12 +21,19 @@ const String GodotStoreKit2::signal_purchase_deferred = "purchase_deferred";
 const String GodotStoreKit2::signal_store_sync = "store_sync_completed";
 const String GodotStoreKit2::signal_update_region = "update_region";
 
+GodotStoreKit2* GodotStoreKit2::_instance = NULL;
+
+GodotStoreKit2* GodotStoreKit2::get_instance() {
+    return _instance;
+}
 
 GodotStoreKit2::GodotStoreKit2() {
     @try {
-        _inited = false;
+        if (_instance)
+            return;
         GodotStoreKitSwift.shared.productUpdateCallback = ^(NSArray<NSDictionary<NSString*,id> *> *productList) {
-            if (!productList || productList.count == 0 || !_inited) {
+            
+            if (!productList || productList.count == 0 || GodotStoreKit2::get_instance() == NULL) {
                 NSLog(@"[GodotStoreKit] Product list is invalid or StoreKit is not initialized!");
                 return;
             }
@@ -37,7 +45,7 @@ GodotStoreKit2::GodotStoreKit2() {
                 if (var.get_type() == Variant::ARRAY) {
                     Array arr = var;
                     //emit_signal(signal_update_products_list, arr);
-                    call_deferred("emit_signal", signal_update_products_list, arr);
+                    GodotStoreKit2::get_instance()->call_deferred("emit_signal", signal_update_products_list, arr);
                 }
                 else {
                     NSLog(@"[GodotStoreKit] conver ns to variant is invalid!");
@@ -53,7 +61,7 @@ GodotStoreKit2::GodotStoreKit2() {
                 return;
             }
             
-            if (!_inited) {
+            if ( GodotStoreKit2::get_instance() == NULL ) {
                 NSLog(@"[GodotStoreKit2] Update transaction failed: StoreKit is not initialized!");
                 return;
             }
@@ -69,7 +77,7 @@ GodotStoreKit2::GodotStoreKit2() {
             if (variant_list.get_type() == Variant::ARRAY) {
                 Array transaction_list = variant_list;
                 
-                call_deferred("emit_signal", signal_update_transaction_list, transaction_list);
+                GodotStoreKit2::get_instance()->call_deferred("emit_signal", signal_update_transaction_list, transaction_list);
             }
             else {
                 NSLog(@"[GodotStoreKit2] transaction variant is invalid!");
@@ -83,27 +91,27 @@ GodotStoreKit2::GodotStoreKit2() {
                                                        NSDictionary<NSString *,NSString *> *product) {
             if (product == nil) return;
             if (product.count == 0) return;
-            if (_inited == false) return;
+            if ( GodotStoreKit2::get_instance() == NULL ) return;
             Dictionary dict = Utils::convert_ns_value_to_variant(product);
             String err = errText.UTF8String;
             int code = int(errCode);
             
             
-            emit_signal(signal_purchased, code, err, dict);
+            GodotStoreKit2::get_instance()->call_deferred("emit_signal", signal_purchased, code, err, dict);
         };
         
         GodotStoreKitSwift.shared.purchaseDeferredCallback = ^(NSString *sku) {
-            if (_inited == false) return;
+            if ( GodotStoreKit2::get_instance() == NULL) return;
             if (!sku) return;
             if (sku.length > 0) {
                 NSString *sku_cpy = [sku mutableCopy];
-                emit_signal(signal_purchase_deferred, sku_cpy.UTF8String);
+                GodotStoreKit2::get_instance()->call_deferred("emit_signal", signal_purchase_deferred, sku_cpy.UTF8String);
                 _purchase_deferred = sku_cpy.UTF8String;
             }
         };
         
         GodotStoreKitSwift.shared.godot_inited = true;
-        _inited = true;
+        _instance = this;
     }
     @catch (NSException *exception) {
         NSLog(@"StoreKit2 %@", exception);
@@ -117,7 +125,8 @@ GodotStoreKit2::GodotStoreKit2() {
 
 
 GodotStoreKit2::~GodotStoreKit2() {
-    _inited = false;
+    if (_instance == this)
+        _instance = NULL;
     GodotStoreKitSwift.shared.godot_inited = false;
     GodotStoreKitSwift.shared.purchaseDeferredCallback = nil;
     GodotStoreKitSwift.shared.purchaseCallback = nil;
@@ -165,7 +174,7 @@ void GodotStoreKit2::_bind_methods() {
 
 
 void GodotStoreKit2::request_products(PoolStringArray skus) {
-    if (!_inited) return;
+    if ( GodotStoreKit2::get_instance() == NULL) return;
     @try {
         //request_region();
     
@@ -219,14 +228,17 @@ void GodotStoreKit2::show_manage_subscriptions() {
 void GodotStoreKit2::store_sync() { 
     
     [GodotStoreKitSwift.shared storeSyncWithCompletion:^{
-        emit_signal(signal_store_sync);
+        if (GodotStoreKit2::get_instance())
+            GodotStoreKit2::get_instance()->call_deferred("emit_signal", signal_store_sync);
     }];
 }
 
 void GodotStoreKit2::request_region() {
     [GodotStoreKitSwift.shared getRegionWithCallback:^(NSString *country_code) {
-        _current_region = country_code.UTF8String;
-        emit_signal(signal_update_region);
+        dispatch_async(dispatch_get_main_queue(), ^{
+            _current_region = country_code.UTF8String;
+            if (GodotStoreKit2::get_instance())            GodotStoreKit2::get_instance()->call_deferred("emit_signal", signal_update_region);
+        });
     }];
 }
 

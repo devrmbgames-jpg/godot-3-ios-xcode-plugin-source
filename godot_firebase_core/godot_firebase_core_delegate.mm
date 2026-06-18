@@ -22,7 +22,11 @@
     if (self) {
         _object = object;
         status = ERR_UNAVAILABLE;
-        //[FIRApp configure];
+        if ([FIRApp defaultApp] == nil) {
+            [FIRApp configure];
+        } else {
+            NSLog(@"Firebase already configured, skip FIRApp configure");
+        }
         
         print_verbose("[GodotFirebaseCoreDelegate] init with object" + object->to_string());
     }

@@ -221,7 +221,7 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
     FirebaseCloudMessaging* instance = FirebaseCloudMessaging::get_instance();
     if (instance) {
         instance->message_received(from_nsdictionary(userInfo));
-        instance->emit_signal("tapped_message", String::utf8(title.UTF8String));
+        instance->call_deferred("emit_signal", "tapped_message", String::utf8(title.UTF8String));
     }
 }
 
@@ -253,6 +253,8 @@ FirebaseCloudMessaging::FirebaseCloudMessaging() {
 
 FirebaseCloudMessaging::~FirebaseCloudMessaging() {
     NSLog(@"Deinitialize FirebaseCloudMessaging");
+    instance = NULL;
+    _is_setup = false;
 }
 
 void FirebaseCloudMessaging::setup() {
@@ -283,12 +285,16 @@ void FirebaseCloudMessaging::setup() {
     [application registerForRemoteNotifications];
     
     [[FIRMessaging messaging] tokenWithCompletion:^(NSString *token, NSError *error) {
+        
+        if (FirebaseCloudMessaging::get_instance() == NULL)
+            return;
+        
         if (error != nil) {
             NSLog(@"Error getting FCM registration token: %@", error);
         } else {
             NSLog(@"FCM registration token: %@", token);
             _token = from_nsstring(token);
-            emit_signal("token");
+            FirebaseCloudMessaging::get_instance()->call_deferred("emit_signal", "token");
         }
     }];
 }
@@ -303,12 +309,12 @@ Dictionary FirebaseCloudMessaging::get_message() {
 
 void FirebaseCloudMessaging::token_received(String t) {
     _token = t;
-    emit_signal("token");
+    call_deferred("emit_signal", "token");
 }
 
 void FirebaseCloudMessaging::message_received(Dictionary m) {
     _message = m;
-    emit_signal("message");
+    call_deferred("emit_signal", "message");
 }
 
 void FirebaseCloudMessaging::push_local(String title, String msg) {

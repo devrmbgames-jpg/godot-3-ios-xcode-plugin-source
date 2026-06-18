@@ -28,7 +28,7 @@ GodotIOSHepatic::GodotIOSHepatic() {
         [engine setStoppedHandler:^(CHHapticEngineStoppedReason stoppedReason) {
             if (_inited && stoppedReason) {
                 NSLog(@"Haptic Stopped!");
-                emit_signal("drop");
+                call_deferred("emit_signal", "drop");
             }
         }];
         

@@ -15,7 +15,11 @@
 @import ApphudSDK;
 
 
-bool GodotAppHud::is_ok = false;
+GodotAppHud* GodotAppHud::_instance = NULL;
+
+GodotAppHud* GodotAppHud::get_instance() {
+    return _instance;
+}
 
 void GodotAppHud::_bind_methods() { 
     ClassDB::bind_method(D_METHOD("start"), &GodotAppHud::start);
@@ -38,12 +42,15 @@ void GodotAppHud::_bind_methods() {
 }
 
 GodotAppHud::GodotAppHud() {
+    if (_instance)
+        return;
+    _instance = this;
     GodotAppHudSwift.shared.godot_inited = true;
-    is_ok = true;
 }
 
 GodotAppHud::~GodotAppHud() {
-    is_ok = false;
+    if (_instance == this)
+        _instance = NULL;
     GodotAppHudSwift.shared.godot_inited = false;
     [GodotAppHudSwift.shared erase];
 }
@@ -65,9 +72,10 @@ void GodotAppHud::start(String app_id, String user_id, bool is_observer) {
     
     [GodotAppHudSwift.shared startWithApiKey:appId userID:userId observerMode:is_observer callback:^(BOOL result) {
         if (result) {
-            if (!is_ok) return;
+            if (GodotAppHud::get_instance() == NULL)
+                return;
             NSLog(@"[GodotAppHud] start success!");
-            emit_signal("connected");
+            GodotAppHud::get_instance()->call_deferred("emit_signal", "connected");
         }
     }];
     
@@ -109,9 +117,10 @@ void GodotAppHud::start_manually(String app_id, String user_id, String device_id
     
     [GodotAppHudSwift.shared startMannualyWithApiKey:appId userID:userId deviceID:deviceId observerMode:is_observer callback:^(BOOL result) {
         if (result) {
-            if (!is_ok) return;
+            if (GodotAppHud::get_instance() == NULL)
+                return;
             NSLog(@"[GodotAppHud] start success!");
-            emit_signal("connected");
+            GodotAppHud::get_instance()->call_deferred("emit_signal", "connected");
             
         }
     }];
@@ -127,15 +136,15 @@ void GodotAppHud::purchase_promo(String product_id, String discount_id) {
                                                callback:^(NSDictionary<NSString *,NSString *> * result, BOOL success) {
         if (!result) return;
         if (result.count == 0) return;
-        if (!is_ok) return;
+        if (GodotAppHud::get_instance() == NULL) return;
         
         Dictionary dict = Utils::convert_ns_value_to_variant(result);
-        emit_signal("update_transaction", dict);
+        GodotAppHud::get_instance()->call_deferred("emit_signal", "update_transaction", dict);
         if (success) {
-            emit_signal("purchase_success", dict);
+            GodotAppHud::get_instance()->call_deferred("emit_signal", "purchase_success", dict);
         }
         else {
-            emit_signal("purchase_failed", dict);
+            GodotAppHud::get_instance()->call_deferred("emit_signal", "purchase_failed", dict);
         }
     }];
 }
@@ -148,11 +157,11 @@ void GodotAppHud::request_product() {
         
         if (!products) return;
         if (products.count == 0) return;
-        if (!is_ok) return;
+        if (GodotAppHud::get_instance() == NULL) return;
         
         for (NSDictionary<NSString *,id> * product in products) {
             Dictionary dict = Utils::convert_ns_value_to_variant(product);
-            emit_signal("update_product", dict);
+            GodotAppHud::get_instance()->call_deferred("emit_signal", "update_product", dict);
         }
     }];
 }
@@ -161,11 +170,11 @@ void GodotAppHud::request_transactions() {
     [GodotAppHudSwift.shared requestTransactionsWithPCallback:^(NSArray<NSDictionary<NSString *,NSString *> *> * transactions) {
         if (!transactions) return;
         if (transactions.count == 0) return;
-        if (!is_ok) return;
+        if (GodotAppHud::get_instance() == NULL) return;
         
         for (NSDictionary<NSString *,NSString *> * transaction in transactions) {
             Dictionary dict = Utils::convert_ns_value_to_variant(transaction);
-            emit_signal("update_transaction", dict);
+            GodotAppHud::get_instance()->call_deferred("emit_signal", "update_transaction", dict);
         }
     }];
 }
@@ -174,11 +183,11 @@ void GodotAppHud::restore_purchase() {
     [GodotAppHudSwift.shared restorePurchaseWithCallback:^(NSArray<NSDictionary<NSString *,NSString *> *> * transactions) {
         if (!transactions) return;
         if (transactions.count == 0) return;
-        if (!is_ok) return;
+        if (GodotAppHud::get_instance() == NULL) return;
         
         for (NSDictionary<NSString *,NSString *> * transaction in transactions) {
             Dictionary dict = Utils::convert_ns_value_to_variant(transaction);
-            emit_signal("update_transaction", dict);
+            GodotAppHud::get_instance()->call_deferred("emit_signal", "update_transaction", dict);
         }
     }];
 }
@@ -188,15 +197,15 @@ void GodotAppHud::purchase_product(String product_id) {
                                           pCallback:^(NSDictionary<NSString *,NSString *> * result, BOOL success) {
         if (!result) return;
         if (result.count == 0) return;
-        if (!is_ok) return;
+        if (GodotAppHud::get_instance() == NULL) return;
         
         Dictionary dict = Utils::convert_ns_value_to_variant(result);
-        emit_signal("update_transaction", dict);
+        GodotAppHud::get_instance()->call_deferred("emit_signal", "update_transaction", dict);
         if (success) {
-            emit_signal("purchase_success", dict);
+            GodotAppHud::get_instance()->call_deferred("emit_signal", "purchase_success", dict);
         }
         else {
-            emit_signal("purchase_failed", dict);
+            GodotAppHud::get_instance()->call_deferred("emit_signal", "purchase_failed", dict);
         }
     }];
 }

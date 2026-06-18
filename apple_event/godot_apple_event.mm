@@ -14,7 +14,9 @@ GodotAppleEvent::GodotAppleEvent() {
 	instance = this;
 }
 
-GodotAppleEvent::~GodotAppleEvent() {}
+GodotAppleEvent::~GodotAppleEvent() {
+    instance = NULL;
+}
 
 void GodotAppleEvent::_bind_methods() {
 	ADD_SIGNAL(MethodInfo("event_open_url", PropertyInfo(Variant::STRING, "url")));
@@ -24,7 +26,7 @@ void GodotAppleEvent::_bind_methods() {
 void GodotAppleEvent::open_url(String url) {
     if (url.length() > 0)
         last_event = url;
-	emit_signal("event_open_url", url);
+	call_deferred("emit_signal", "event_open_url", url);
 }
 
 String GodotAppleEvent::get_last_event_url() const {
